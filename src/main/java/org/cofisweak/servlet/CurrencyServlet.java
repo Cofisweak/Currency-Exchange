@@ -1,5 +1,7 @@
 package org.cofisweak.servlet;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -14,18 +16,10 @@ import java.nio.charset.StandardCharsets;
 public class CurrencyServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        resp.setContentType("application/json");
-        try (PrintWriter printWriter = resp.getWriter()) {
-            printWriter.write("""
-                    {
-                        "name": "name",
-                        "object": {
-                            "id": "3",
-                            "color": "red"
-                        }
-                    }
-                    """);
+        GsonBuilder builder = new GsonBuilder();
+        Gson gson = builder.create();
+        try (PrintWriter writer = resp.getWriter()) {
+            writer.write(gson.toJson(new Object()));
         }
     }
 }
