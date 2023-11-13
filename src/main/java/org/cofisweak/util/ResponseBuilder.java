@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.cofisweak.model.ExceptionResponse;
+import org.cofisweak.dto.ExceptionResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;

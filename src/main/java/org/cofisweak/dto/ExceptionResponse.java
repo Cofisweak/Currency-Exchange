@@ -1,4 +1,4 @@
-package org.cofisweak.model;
+package org.cofisweak.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

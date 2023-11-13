@@ -24,6 +24,11 @@ public class CurrencyDao {
             FROM currencies
             WHERE code = ?""";
 
+    private static final String GET_CURRENCY_BY_ID_SQL = """
+            SELECT id, code, full_name, sign
+            FROM currencies
+            WHERE id = ?""";
+
     private static final String ADD_NEW_CURRENCY_SQL = """
             INSERT INTO currencies (code, full_name, sign)
             VALUES (?, ?, ?)""";
@@ -78,5 +83,21 @@ public class CurrencyDao {
 
     public static CurrencyDao getInstance() {
         return INSTANCE;
+    }
+
+    public Optional<Currency> getCurrencyById(int id) throws DaoException {
+        try (Connection connection = ConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(GET_CURRENCY_BY_ID_SQL)) {
+            statement.setInt(1, id);
+            ResultSet set = statement.executeQuery();
+            Currency currency = null;
+            while (set.next()) {
+                currency = CurrencyMapper.mapFrom(set);
+            }
+            return Optional.ofNullable(currency);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+            throw new DaoException("Unable to get currency by currency id");
+        }
     }
 }

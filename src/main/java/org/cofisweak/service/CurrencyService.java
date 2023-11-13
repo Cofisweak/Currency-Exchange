@@ -25,6 +25,10 @@ public class CurrencyService {
         return currencyDao.getCurrencyByCode(code.toUpperCase());
     }
 
+    public Optional<Currency> getCurrencyById(int id) throws DaoException {
+        return currencyDao.getCurrencyById(id);
+    }
+
     public List<Currency> getAllCurrencies() throws DaoException {
         return currencyDao.getAllCurrencies();
     }
