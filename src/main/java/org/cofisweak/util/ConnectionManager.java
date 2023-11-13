@@ -37,11 +37,7 @@ public class ConnectionManager {
     private static BlockingQueue<Connection> connectionPool;
 
     static {
-        try {
-            initPool();
-        } catch (DatabaseNotAvailableException e) {
-            throw new RuntimeException(e);
-        }
+        initPool();
         initDefaultDatabase();
     }
 
@@ -57,16 +53,18 @@ public class ConnectionManager {
     }
 
     private static Connection openConnection() throws SQLException {
-        Connection connection = DriverManager.getConnection(PropertiesManager.get(DB_URL));
-        Proxy.newProxyInstance(
-                ConnectionManager.class.getClassLoader(),
+        Connection connection = open();
+        return (Connection) Proxy.newProxyInstance(
+                Connection.class.getClassLoader(),
                 new Class[]{Connection.class},
                 (proxy, method, args) ->
                         method.getName().equals("close") ?
                                 connectionPool.add((Connection) proxy) :
-                                method.invoke(connection, args)
-        );
-        return connection;
+                                method.invoke(connection, args));
+    }
+
+    private static Connection open() throws SQLException {
+        return DriverManager.getConnection(PropertiesManager.get(DB_URL));
     }
 
     @SneakyThrows
@@ -74,7 +72,8 @@ public class ConnectionManager {
         return connectionPool.take();
     }
 
-    private static void initPool() throws DatabaseNotAvailableException {
+    @SneakyThrows
+    private static void initPool() {
         try {
             Class.forName("org.sqlite.JDBC");
             String poolSizeString = PropertiesManager.get("db.pool.size");

@@ -1,22 +1,23 @@
 package org.cofisweak.util;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
 import org.cofisweak.exception.CannotLoadPropertiesException;
 
 import java.io.IOException;
 import java.util.Properties;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class PropertiesManager {
     private static final Properties PROPERTIES = new Properties();
 
     static {
-        try {
-            loadProperties();
-        } catch (CannotLoadPropertiesException e) {
-            throw new RuntimeException(e);
-        }
+        loadProperties();
     }
 
-    private static void loadProperties() throws CannotLoadPropertiesException {
+    @SneakyThrows
+    private static void loadProperties() {
         var stream = PropertiesManager.class.getClassLoader().getResourceAsStream("application.properties");
         try {
             PROPERTIES.load(stream);

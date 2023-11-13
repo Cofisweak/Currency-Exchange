@@ -3,6 +3,7 @@ package org.cofisweak.dao;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.cofisweak.exception.DaoException;
+import org.cofisweak.mapper.CurrencyMapper;
 import org.cofisweak.model.Currency;
 import org.cofisweak.util.ConnectionManager;
 
@@ -34,11 +35,7 @@ public class CurrencyDao {
              PreparedStatement statement = connection.prepareStatement(GET_ALL_CURRENCIES_SQL)) {
             ResultSet set = statement.executeQuery();
             while (set.next()) {
-                Currency currency = new Currency(
-                        set.getInt("id"),
-                        set.getString("code"),
-                        set.getString("full_name"),
-                        set.getString("sign"));
+                Currency currency = CurrencyMapper.mapFrom(set);
                 allCurrencies.add(currency);
             }
         } catch (SQLException e) {
@@ -56,16 +53,26 @@ public class CurrencyDao {
             ResultSet set = statement.executeQuery();
             Currency currency = null;
             while (set.next()) {
-                currency = new Currency(
-                        set.getInt("id"),
-                        set.getString("code"),
-                        set.getString("full_name"),
-                        set.getString("sign"));
+                currency = CurrencyMapper.mapFrom(set);
             }
             return Optional.ofNullable(currency);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
             throw new DaoException("Unable to get currency by currency code");
+        }
+    }
+
+    public Optional<Currency> addNewCurrency(Currency currency) throws DaoException {
+        try(Connection connection = ConnectionManager.getConnection();
+        PreparedStatement statement = connection.prepareStatement(ADD_NEW_CURRENCY_SQL)) {
+            statement.setString(1, currency.getCode());
+            statement.setString(2, currency.getFullName());
+            statement.setString(3, currency.getSign());
+            statement.execute();
+            return getCurrencyByCode(currency.getCode());
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+            throw new DaoException("Unable to add currency");
         }
     }
 

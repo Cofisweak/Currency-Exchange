@@ -1,13 +1,12 @@
 package org.cofisweak.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
+@Data
 public class ExceptionResponse {
-    private final String message;
-
-    public ExceptionResponse(String message) {
-        this.message = message;
-    }
-
-    public String getMessage() {
-        return message;
-    }
+    String message;
 }
