@@ -28,7 +28,8 @@ public class ExchangeRatesServlet extends HttpServlet {
         } catch (ExchangeRateAlreadyExistsException e) {
             resp.setStatus(409);
             ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
-        } catch (MissingFieldException | CurrencyNotFoundException | InvalidCurrencyCodeException | AddExchangeRateException e) {
+        } catch (MissingFieldException | CurrencyNotFoundException | InvalidCurrencyCodeException |
+                 IllegalRateException e) {
             resp.setStatus(400);
             ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
         } catch (DaoException e) {

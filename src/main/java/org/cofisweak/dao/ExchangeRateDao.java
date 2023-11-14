@@ -6,6 +6,7 @@ import org.cofisweak.mapper.ExchangeRateMapper;
 import org.cofisweak.model.ExchangeRate;
 import org.cofisweak.util.ConnectionManager;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,17 +21,17 @@ public class ExchangeRateDao {
 
     private static final String GET_EXCHANGE_RATE_BY_CURRENCY_IDS_SQL = """
             SELECT id, base_currency_id, target_currency_id, rate
-            FROM main.exchange_rates
+            FROM exchange_rates
             WHERE base_currency_id = ? AND target_currency_id = ?""";
 
-    private static final String GET_EXCHANGE_RATE_BY_ID_SQL = """
-            SELECT id, base_currency_id, target_currency_id, rate
-            FROM main.exchange_rates
-            WHERE id = ?""";
-
     private static final String ADD_NEW_EXCHANGE_RATE_SQL = """
-            INSERT INTO main.exchange_rates (base_currency_id, target_currency_id, rate)
+            INSERT INTO exchange_rates (base_currency_id, target_currency_id, rate)
             VALUES (?, ?, ?)""";
+
+    private static final String UPDATE_RATE_OF_EXCHANGE_RATE_SQL = """
+            UPDATE exchange_rates
+            SET rate = ?
+            WHERE id = ?""";
 
     public List<ExchangeRate> getAllExchangeRates() throws DaoException {
         List<ExchangeRate> result = new ArrayList<>();
@@ -84,19 +85,16 @@ public class ExchangeRateDao {
         }
     }
 
-/*    public Optional<ExchangeRate> getExchangeRateById(int id) throws DaoException {
+    public ExchangeRate updateRateOfExchangeRate(ExchangeRate exchangeRate, BigDecimal rate) throws DaoException {
         try (Connection connection = ConnectionManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(GET_EXCHANGE_RATE_BY_ID_SQL)) {
-            statement.setInt(1, id);
-            ResultSet set = statement.executeQuery();
-            ExchangeRate exchangeRate = null;
-            if (set.next()) {
-                exchangeRate = ExchangeRateMapper.mapFrom(set);
-            }
-            return Optional.ofNullable(exchangeRate);
+             PreparedStatement statement = connection.prepareStatement(UPDATE_RATE_OF_EXCHANGE_RATE_SQL)) {
+            statement.setBigDecimal(1, rate);
+            statement.setInt(2, exchangeRate.getId());
+            statement.execute();
+            exchangeRate.setRate(rate);
+            return exchangeRate;
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            throw new DaoException("Unable get exchange rate by id");
+            throw new DaoException("Unable to update rate of exchange rate");
         }
-    }*/
+    }
 }
