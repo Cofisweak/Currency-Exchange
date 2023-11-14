@@ -4,10 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.cofisweak.dao.CurrencyDao;
 import org.cofisweak.dto.AddCurrencyDto;
-import org.cofisweak.exception.AddCurrencyException;
-import org.cofisweak.exception.InvalidCurrencyCodeException;
-import org.cofisweak.exception.CurrencyAlreadyExistException;
-import org.cofisweak.exception.DaoException;
+import org.cofisweak.exception.*;
 import org.cofisweak.model.Currency;
 
 import java.util.List;
@@ -20,7 +17,7 @@ public class CurrencyService {
 
     public Optional<Currency> getCurrencyByCode(String code) throws DaoException, InvalidCurrencyCodeException {
         if (code == null || code.length() != 3) {
-            throw new InvalidCurrencyCodeException("Currency code must contain 3 characters");
+            throw new InvalidCurrencyCodeException();
         }
         return currencyDao.getCurrencyByCode(code.toUpperCase());
     }
@@ -37,31 +34,35 @@ public class CurrencyService {
         return INSTANCE;
     }
 
-    public Optional<Currency> addNewCurrency(AddCurrencyDto dto) throws AddCurrencyException, DaoException, CurrencyAlreadyExistException, InvalidCurrencyCodeException {
-        if(dto.code() == null || dto.code().isEmpty()) {
-            throw new AddCurrencyException("Missing field \"code\"");
-        }
-        if(dto.sign() == null || dto.sign().isEmpty()) {
-            throw new AddCurrencyException("Missing field \"sign\"");
-        }
-        if(dto.name() == null || dto.name().isEmpty()) {
-            throw new AddCurrencyException("Missing field \"name\"");
-        }
-        if (dto.code().length() != 3) {
-            throw new InvalidCurrencyCodeException("Currency code must contain 3 characters");
-        }
+    public Currency addNewCurrency(AddCurrencyDto dto) throws DaoException, CurrencyAlreadyExistsException, InvalidCurrencyCodeException, MissingFieldException {
+        validateCurrencyDto(dto);
 
         Optional<Currency> existingCurrency = currencyDao.getCurrencyByCode(dto.code());
         if (existingCurrency.isPresent()) {
-            throw new CurrencyAlreadyExistException("Currency " + dto.code() + " already exists");
+            throw new CurrencyAlreadyExistsException();
         }
 
         Currency currency = new Currency();
         currency.setCode(dto.code().toUpperCase());
         currency.setFullName(dto.name());
         currency.setSign(dto.sign());
+        currencyDao.addNewCurrency(currency);
+        return currency;
+    }
 
-        return currencyDao.addNewCurrency(currency);
+    private static void validateCurrencyDto(AddCurrencyDto dto) throws MissingFieldException, InvalidCurrencyCodeException {
+        if(dto.code() == null || dto.code().isEmpty()) {
+            throw new MissingFieldException("code");
+        }
+        if(dto.sign() == null || dto.sign().isEmpty()) {
+            throw new MissingFieldException("sign");
+        }
+        if(dto.name() == null || dto.name().isEmpty()) {
+            throw new MissingFieldException("name");
+        }
+        if (dto.code().length() != 3) {
+            throw new InvalidCurrencyCodeException();
+        }
     }
 
 }

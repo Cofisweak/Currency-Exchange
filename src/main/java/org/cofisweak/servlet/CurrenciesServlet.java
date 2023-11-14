@@ -5,17 +5,13 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.cofisweak.dto.AddCurrencyDto;
-import org.cofisweak.exception.AddCurrencyException;
-import org.cofisweak.exception.CurrencyAlreadyExistException;
-import org.cofisweak.exception.DaoException;
-import org.cofisweak.exception.InvalidCurrencyCodeException;
+import org.cofisweak.exception.*;
 import org.cofisweak.model.Currency;
 import org.cofisweak.service.CurrencyService;
 import org.cofisweak.util.ResponseBuilder;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @WebServlet("/currencies")
 public class CurrenciesServlet extends HttpServlet {
@@ -39,15 +35,12 @@ public class CurrenciesServlet extends HttpServlet {
                 req.getParameter("code"),
                 req.getParameter("sign"));
         try {
-            Optional<Currency> currency = currencyService.addNewCurrency(dto);
-            if (currency.isEmpty()) {
-                throw new AddCurrencyException("Unknown exception");
-            }
-            ResponseBuilder.writeResultToResponse(currency.get(), resp);
-        } catch (CurrencyAlreadyExistException e) {
+            Currency currency = currencyService.addNewCurrency(dto);
+            ResponseBuilder.writeResultToResponse(currency, resp);
+        } catch (CurrencyAlreadyExistsException e) {
             resp.setStatus(409);
             ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
-        } catch (AddCurrencyException | InvalidCurrencyCodeException e) {
+        } catch (InvalidCurrencyCodeException | MissingFieldException e) {
             resp.setStatus(400);
             ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
         } catch (DaoException e) {

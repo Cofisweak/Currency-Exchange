@@ -57,7 +57,7 @@ public class CurrencyDao {
             statement.setString(1, code);
             ResultSet set = statement.executeQuery();
             Currency currency = null;
-            while (set.next()) {
+            if (set.next()) {
                 currency = CurrencyMapper.mapFrom(set);
             }
             return Optional.ofNullable(currency);
@@ -67,14 +67,13 @@ public class CurrencyDao {
         }
     }
 
-    public Optional<Currency> addNewCurrency(Currency currency) throws DaoException {
+    public void addNewCurrency(Currency currency) throws DaoException {
         try(Connection connection = ConnectionManager.getConnection();
         PreparedStatement statement = connection.prepareStatement(ADD_NEW_CURRENCY_SQL)) {
             statement.setString(1, currency.getCode());
             statement.setString(2, currency.getFullName());
             statement.setString(3, currency.getSign());
             statement.execute();
-            return getCurrencyByCode(currency.getCode());
         } catch (SQLException e) {
             System.out.println(e.getMessage());
             throw new DaoException("Unable to add currency");

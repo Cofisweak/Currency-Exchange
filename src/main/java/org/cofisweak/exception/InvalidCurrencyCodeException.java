@@ -1,7 +1,7 @@
 package org.cofisweak.exception;
 
 public class InvalidCurrencyCodeException extends Exception {
-    public InvalidCurrencyCodeException(String message) {
-        super(message);
+    public InvalidCurrencyCodeException() {
+        super("Invalid currency code. The currency code should be like 'USD'");
     }
 }
