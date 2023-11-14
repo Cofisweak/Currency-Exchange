@@ -16,10 +16,10 @@ import java.util.List;
 import java.util.Optional;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class ExchangeRateService {
+public class ExchangeService {
     private static final ExchangeRateDao exchangeRateDao = ExchangeRateDao.getInstance();
     private static final CurrencyService currencyService = CurrencyService.getInstance();
-    private static final ExchangeRateService INSTANCE = new ExchangeRateService();
+    private static final ExchangeService INSTANCE = new ExchangeService();
 
     public List<ExchangeRateDto> getAllExchangeRates() throws DaoException, InvalidCurrencyCodeException {
         List<ExchangeRate> rates = exchangeRateDao.getAllExchangeRates();
@@ -46,7 +46,7 @@ public class ExchangeRateService {
                 exchangeRate.getRate());
     }
 
-    public static ExchangeRateService getInstance() {
+    public static ExchangeService getInstance() {
         return INSTANCE;
     }
 

@@ -8,7 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.cofisweak.dto.ExchangeRateDto;
 import org.cofisweak.exception.*;
 import org.cofisweak.model.ExchangeRate;
-import org.cofisweak.service.ExchangeRateService;
+import org.cofisweak.service.ExchangeService;
 import org.cofisweak.util.ResponseBuilder;
 
 import java.io.IOException;
@@ -16,7 +16,7 @@ import java.util.Optional;
 
 @WebServlet("/exchangeRate/*")
 public class ExchangeRateServlet extends HttpServlet {
-    private static final ExchangeRateService exchangeRateService = ExchangeRateService.getInstance();
+    private static final ExchangeService exchangeService = ExchangeService.getInstance();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -24,11 +24,11 @@ public class ExchangeRateServlet extends HttpServlet {
         System.out.println(requestURI);
         String code = requestURI.substring(requestURI.lastIndexOf("/") + 1);
         try {
-            Optional<ExchangeRate> exchangeRate = exchangeRateService.getExchangeRateByCurrencyCodePair(code);
+            Optional<ExchangeRate> exchangeRate = exchangeService.getExchangeRateByCurrencyCodePair(code);
             if (exchangeRate.isEmpty()) {
                 throw new ExchangeRateNotFoundException();
             } else {
-                ExchangeRateDto dto = exchangeRateService.getExchangeRateDto(exchangeRate.get());
+                ExchangeRateDto dto = exchangeService.getExchangeRateDto(exchangeRate.get());
                 ResponseBuilder.writeResultToResponse(dto, resp);
             }
         } catch (DaoException e) {
@@ -46,7 +46,7 @@ public class ExchangeRateServlet extends HttpServlet {
         String code = requestURI.substring(requestURI.lastIndexOf("/") + 1);
         try {
             String rate = getRateFromRequestBody(req);
-            ExchangeRateDto dto = exchangeRateService.updateRateOfExchangeRateByCurrencyCodePair(code, rate);
+            ExchangeRateDto dto = exchangeService.updateRateOfExchangeRateByCurrencyCodePair(code, rate);
             ResponseBuilder.writeResultToResponse(dto, resp);
         } catch (DaoException e) {
             resp.setStatus(500);
