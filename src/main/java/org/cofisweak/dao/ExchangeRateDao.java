@@ -79,6 +79,7 @@ public class ExchangeRateDao {
             statement.setInt(2, rate.getTargetCurrencyId());
             statement.setBigDecimal(3, rate.getRate());
             statement.execute();
+            //TODO: ID
         } catch (SQLException e) {
             System.out.println(e.getMessage());
             throw new DaoException("Unable to add new exchange rate");
