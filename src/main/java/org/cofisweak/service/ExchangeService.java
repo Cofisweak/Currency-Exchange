@@ -88,7 +88,6 @@ public class ExchangeService {
     private static void validateAddExchangeRateRequestDto(AddExchangeRateRequestDto dto) throws MissingFieldException {
         validateCurrencyCode(dto.baseCurrencyCode(), "baseCurrencyCode");
         validateCurrencyCode(dto.targetCurrencyCode(), "targetCurrencyCode");
-        validateCurrencyCode(dto.rate(), "rate");
         if (dto.rate().isEmpty()) {
             throw new MissingFieldException("rate");
         }
@@ -119,7 +118,9 @@ public class ExchangeService {
     }
 
     public ExchangeRateDto updateRateOfExchangeRateByCurrencyCodePair(String code, String newRate) throws InvalidCurrencyCodeException, DaoException, ExchangeRateNotFoundException, MissingFieldException, IllegalRateException, InvalidCurrencyCodePairException {
-        validateCurrencyCode(newRate, "rate");
+        if (newRate == null || newRate.isEmpty()) {
+            throw new MissingFieldException("rate");
+        }
         Optional<ExchangeRate> exchangeRate = getExchangeRateByCurrencyCodePair(code);
         if (exchangeRate.isEmpty()) {
             throw new ExchangeRateNotFoundException();
