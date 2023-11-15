@@ -33,6 +33,18 @@ public class ExchangeRateDao {
             SET rate = ?
             WHERE id = ?""";
 
+    private static final String GET_ALL_EXCHANGE_RATES_WITH_REVERSED_RATE_SQL = """
+            SELECT
+                      base_currency_id,
+                      target_currency_id,
+                      rate
+                  FROM exchange_rates
+                  UNION SELECT
+                            target_currency_id,
+                            base_currency_id,
+                            1 / rate as rate
+                  FROM exchange_rates""";
+
     public List<ExchangeRate> getAllExchangeRates() throws DaoException {
         List<ExchangeRate> result = new ArrayList<>();
 
@@ -97,5 +109,25 @@ public class ExchangeRateDao {
         } catch (SQLException e) {
             throw new DaoException("Unable to update rate of exchange rate");
         }
+    }
+
+    public List<ExchangeRate> getAllExchangeRatesWithReversedRate() throws DaoException {
+        List<ExchangeRate> result = new ArrayList<>();
+
+        try (Connection connection = ConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(GET_ALL_EXCHANGE_RATES_WITH_REVERSED_RATE_SQL)) {
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                ExchangeRate exchangeRate = new ExchangeRate();
+                exchangeRate.setBaseCurrencyId(resultSet.getInt("base_currency_id"));
+                exchangeRate.setTargetCurrencyId(resultSet.getInt("target_currency_id"));
+                exchangeRate.setRate(resultSet.getBigDecimal("rate"));
+                result.add(exchangeRate);
+            }
+        } catch (SQLException e) {
+            throw new DaoException("Unable to get all exchange rates with reversed rate");
+        }
+
+        return result;
     }
 }

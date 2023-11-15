@@ -5,6 +5,8 @@ import lombok.NoArgsConstructor;
 import org.cofisweak.dao.ExchangeRateDao;
 import org.cofisweak.dto.AddExchangeRateRequestDto;
 import org.cofisweak.dto.ExchangeRateDto;
+import org.cofisweak.dto.ExchangeRequestDto;
+import org.cofisweak.dto.ExchangeResponseDto;
 import org.cofisweak.exception.*;
 import org.cofisweak.model.Currency;
 import org.cofisweak.model.ExchangeRate;
@@ -51,8 +53,9 @@ public class ExchangeService {
     }
 
     public ExchangeRateDto addNewExchangeRate(AddExchangeRateRequestDto dto) throws InvalidCurrencyCodeException, MissingFieldException, DaoException, CurrencyNotFoundException, ExchangeRateAlreadyExistsException, IllegalRateException {
-        validateExchangeRateRequestDto(dto);
+        validateAddExchangeRateRequestDto(dto);
         BigDecimal rate = parseRate(dto.rate());
+        rate = rate.setScale(6, RoundingMode.DOWN);
         Optional<Currency> firstCurrency = currencyService.getCurrencyByCode(dto.baseCurrencyCode());
         Optional<Currency> secondCurrency = currencyService.getCurrencyByCode(dto.targetCurrencyCode());
         if (firstCurrency.isEmpty() || secondCurrency.isEmpty()) {
@@ -76,25 +79,18 @@ public class ExchangeService {
         BigDecimal rate;
         try {
             rate = new BigDecimal(rateString);
-            rate = rate.setScale(6, RoundingMode.DOWN);
         } catch (NumberFormatException e) {
             throw new IllegalRateException("Illegal rate");
         }
         return rate;
     }
 
-    private static void validateExchangeRateRequestDto(AddExchangeRateRequestDto dto) throws MissingFieldException, InvalidCurrencyCodeException {
-        if (dto.baseCurrencyCode() == null || dto.baseCurrencyCode().isEmpty()) {
-            throw new MissingFieldException("baseCurrencyCode");
-        }
-        if (dto.targetCurrencyCode() == null || dto.targetCurrencyCode().isEmpty()) {
-            throw new MissingFieldException("targetCurrencyCode");
-        }
-        if (dto.rate() == null || dto.rate().isEmpty()) {
+    private static void validateAddExchangeRateRequestDto(AddExchangeRateRequestDto dto) throws MissingFieldException {
+        validateCurrencyCode(dto.baseCurrencyCode(), "baseCurrencyCode");
+        validateCurrencyCode(dto.targetCurrencyCode(), "targetCurrencyCode");
+        validateCurrencyCode(dto.rate(), "rate");
+        if (dto.rate().isEmpty()) {
             throw new MissingFieldException("rate");
-        }
-        if (dto.baseCurrencyCode().length() != 3 || dto.targetCurrencyCode().length() != 3) {
-            throw new InvalidCurrencyCodeException();
         }
     }
 
@@ -123,15 +119,102 @@ public class ExchangeService {
     }
 
     public ExchangeRateDto updateRateOfExchangeRateByCurrencyCodePair(String code, String newRate) throws InvalidCurrencyCodeException, DaoException, ExchangeRateNotFoundException, MissingFieldException, IllegalRateException, InvalidCurrencyCodePairException {
-        if (newRate == null || newRate.isEmpty()) {
-            throw new MissingFieldException("rate");
-        }
+        validateCurrencyCode(newRate, "rate");
         Optional<ExchangeRate> exchangeRate = getExchangeRateByCurrencyCodePair(code);
         if (exchangeRate.isEmpty()) {
             throw new ExchangeRateNotFoundException();
         }
         BigDecimal rate = parseRate(newRate);
+        rate = rate.setScale(6, RoundingMode.DOWN);
         ExchangeRate newExchangeRate = exchangeRateDao.updateRateOfExchangeRate(exchangeRate.get(), rate);
         return getExchangeRateDto(newExchangeRate);
+    }
+
+    public ExchangeResponseDto exchange(ExchangeRequestDto requestDto) throws InvalidCurrencyCodeException, DaoException, ExchangeRateNotFoundException, MissingFieldException, IllegalRateException, CurrencyNotFoundException {
+        validateExchangeRate(requestDto);
+        Optional<Currency> baseCurrency = currencyService.getCurrencyByCode(requestDto.baseCurrencyCode());
+        Optional<Currency> targetCurrency = currencyService.getCurrencyByCode(requestDto.targetCurrencyCode());
+        if (baseCurrency.isEmpty() || targetCurrency.isEmpty()) {
+            throw new CurrencyNotFoundException();
+        }
+
+        BigDecimal amount = parseRate(requestDto.amount());
+
+        if (requestDto.baseCurrencyCode().equals(requestDto.targetCurrencyCode())) {
+            return new ExchangeResponseDto(
+                    baseCurrency.get(),
+                    targetCurrency.get(),
+                    BigDecimal.ONE,
+                    amount,
+                    amount);
+        }
+
+        BigDecimal rate = getRate(baseCurrency.get(), targetCurrency.get());
+        BigDecimal convertedAmount = amount.multiply(rate).setScale(2, RoundingMode.DOWN);
+        return new ExchangeResponseDto(
+                baseCurrency.get(),
+                targetCurrency.get(),
+                rate,
+                amount,
+                convertedAmount);
+    }
+
+    private BigDecimal getRate(Currency baseCurrency, Currency targetCurrency) throws InvalidCurrencyCodeException, DaoException, ExchangeRateNotFoundException {
+        try {
+            return getDirectRate(baseCurrency, targetCurrency);
+        } catch (ExchangeRateNotFoundException ignored) {}
+        try {
+            return getReverseRate(baseCurrency, targetCurrency);
+        } catch (ExchangeRateNotFoundException ignored) {}
+        return getRateByCrossExchange(baseCurrency, targetCurrency);
+    }
+
+    private BigDecimal getRateByCrossExchange(Currency baseCurrency, Currency targetCurrency) throws DaoException, ExchangeRateNotFoundException {
+        List<ExchangeRate> exchangeRates = exchangeRateDao.getAllExchangeRatesWithReversedRate();
+
+        List<ExchangeRate> suitableBaseCurrencies = exchangeRates.stream()
+                .filter(exchangeRate -> exchangeRate.getBaseCurrencyId() == baseCurrency.getId())
+                .toList();
+        List<ExchangeRate> suitableTargetCurrencies = exchangeRates.stream()
+                .filter(exchangeRate -> exchangeRate.getTargetCurrencyId() == targetCurrency.getId())
+                .toList();
+        for (ExchangeRate suitableBaseCurrency : suitableBaseCurrencies) {
+            for (ExchangeRate suitableTargetCurrency : suitableTargetCurrencies) {
+                if (suitableBaseCurrency.getTargetCurrencyId() == suitableTargetCurrency.getBaseCurrencyId()) {
+                    return suitableBaseCurrency.getRate().multiply(suitableTargetCurrency.getRate());
+                }
+            }
+        }
+
+        throw new ExchangeRateNotFoundException();
+    }
+
+    private BigDecimal getDirectRate(Currency baseCurrency, Currency targetCurrency) throws InvalidCurrencyCodeException, DaoException, ExchangeRateNotFoundException {
+        Optional<ExchangeRate> exchangeRate = getExchangeRateByCurrencyCodes(baseCurrency.getCode(), targetCurrency.getCode());
+        if (exchangeRate.isEmpty()) {
+            throw new ExchangeRateNotFoundException();
+        }
+        return exchangeRate.get().getRate();
+
+    }
+
+    private BigDecimal getReverseRate(Currency baseCurrency, Currency targetCurrency) throws InvalidCurrencyCodeException, DaoException, ExchangeRateNotFoundException {
+        return BigDecimal.ONE
+                .setScale(6, RoundingMode.DOWN)
+                .divide(getDirectRate(targetCurrency, baseCurrency), RoundingMode.DOWN);
+    }
+
+    private static void validateExchangeRate(ExchangeRequestDto requestDto) throws MissingFieldException {
+        validateCurrencyCode(requestDto.baseCurrencyCode(), "baseCurrencyCode");
+        validateCurrencyCode(requestDto.targetCurrencyCode(), "targetCurrencyCode");
+        if (requestDto.amount() == null || requestDto.amount().isEmpty()) {
+            throw new MissingFieldException("amount");
+        }
+    }
+
+    private static void validateCurrencyCode(String currencyCode, String fieldName) throws MissingFieldException {
+        if (currencyCode == null || currencyCode.length() != 3) {
+            throw new MissingFieldException(fieldName);
+        }
     }
 }
