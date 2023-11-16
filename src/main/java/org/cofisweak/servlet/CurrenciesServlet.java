@@ -4,11 +4,11 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.cofisweak.dto.AddCurrencyDto;
 import org.cofisweak.exception.*;
 import org.cofisweak.model.Currency;
 import org.cofisweak.service.CurrencyService;
 import org.cofisweak.util.ResponseBuilder;
+import org.cofisweak.util.ValidatorManager;
 
 import java.io.IOException;
 import java.util.List;
@@ -30,22 +30,35 @@ public class CurrenciesServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        AddCurrencyDto dto = new AddCurrencyDto(
-                req.getParameter("name"),
-                req.getParameter("code"),
-                req.getParameter("sign"));
+        String name = req.getParameter("name");
+        String code = req.getParameter("code");
+        String sign = req.getParameter("sign");
         try {
-            Currency currency = currencyService.addNewCurrency(dto);
+            checkIsValidPostRequest(name, code, sign);
+        } catch (MissingFieldException | InvalidCurrencyCodeException e) {
+            resp.setStatus(400);
+            ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
+            return;
+        }
+
+        try {
+            Currency currency = currencyService.addNewCurrency(name, code, sign);
             ResponseBuilder.writeResultToResponse(currency, resp);
         } catch (CurrencyAlreadyExistsException e) {
             resp.setStatus(409);
             ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
-        } catch (InvalidCurrencyCodeException | MissingFieldException e) {
-            resp.setStatus(400);
-            ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
         } catch (DaoException e) {
             resp.setStatus(500);
             ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
+        }
+    }
+
+    private void checkIsValidPostRequest(String name, String code, String sign) throws MissingFieldException, InvalidCurrencyCodeException {
+        ValidatorManager.checkIsFieldFilled(name, "Name");
+        ValidatorManager.checkIsFieldFilled(code, "Code");
+        ValidatorManager.checkIsFieldFilled(sign, "Sign");
+        if (!ValidatorManager.isValidCurrencyCode(code)) {
+            throw new InvalidCurrencyCodeException();
         }
     }
 }

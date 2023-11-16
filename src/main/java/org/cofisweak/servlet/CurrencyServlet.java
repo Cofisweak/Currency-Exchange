@@ -9,6 +9,7 @@ import org.cofisweak.exception.InvalidCurrencyCodeException;
 import org.cofisweak.model.Currency;
 import org.cofisweak.service.CurrencyService;
 import org.cofisweak.util.ResponseBuilder;
+import org.cofisweak.util.ValidatorManager;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -19,7 +20,17 @@ public class CurrencyServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String requestURI = req.getRequestURI();
-        String code = requestURI.substring(requestURI.lastIndexOf("/") + 1);
+        String code = requestURI
+                .substring(requestURI.lastIndexOf("/") + 1)
+                .trim();
+        try {
+            validateGetRequest(code);
+        } catch (InvalidCurrencyCodeException e) {
+            resp.setStatus(400);
+            ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
+            return;
+        }
+
         try {
             Optional<Currency> currency = currencyService.getCurrencyByCode(code);
             if (currency.isPresent()) {
@@ -31,9 +42,12 @@ public class CurrencyServlet extends HttpServlet {
         } catch (DaoException e) {
             resp.setStatus(500);
             ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
-        } catch (InvalidCurrencyCodeException e) {
-            resp.setStatus(400);
-            ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
+        }
+    }
+
+    private static void validateGetRequest(String code) throws InvalidCurrencyCodeException {
+        if (ValidatorManager.isValidCurrencyCode(code)) {
+            throw new InvalidCurrencyCodeException();
         }
     }
 }
