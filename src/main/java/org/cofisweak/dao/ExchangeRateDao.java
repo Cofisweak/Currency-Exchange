@@ -42,7 +42,7 @@ public class ExchangeRateDao {
                   UNION SELECT
                             target_currency_id,
                             base_currency_id,
-                            1 / rate as rate
+                            1.0 / rate as rate
                   FROM exchange_rates""";
 
     public List<ExchangeRate> getAllExchangeRates() throws DaoException {
