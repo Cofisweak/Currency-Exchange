@@ -4,7 +4,7 @@ import org.cofisweak.model.Currency;
 
 import java.math.BigDecimal;
 
-public record ExchangeRateDto(int id,
+public record ExchangeRateDto(long id,
                               Currency baseCurrency,
                               Currency targetCurrency,
                               BigDecimal rate) {

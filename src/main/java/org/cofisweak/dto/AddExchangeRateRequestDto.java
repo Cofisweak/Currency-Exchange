@@ -1,6 +1,10 @@
 package org.cofisweak.dto;
 
-public record AddExchangeRateRequestDto(String baseCurrencyCode,
-                                        String targetCurrencyCode,
-                                        String rate) {
+import org.cofisweak.model.Currency;
+
+import java.math.BigDecimal;
+
+public record AddExchangeRateRequestDto(Currency baseCurrency,
+                                        Currency targetCurrency,
+                                        BigDecimal rate) {
 }

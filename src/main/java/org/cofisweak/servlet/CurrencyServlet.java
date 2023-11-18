@@ -4,12 +4,13 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.cofisweak.exception.CurrencyNotFoundException;
 import org.cofisweak.exception.DaoException;
 import org.cofisweak.exception.InvalidCurrencyCodeException;
 import org.cofisweak.model.Currency;
 import org.cofisweak.service.CurrencyService;
 import org.cofisweak.util.ResponseBuilder;
-import org.cofisweak.util.ValidatorManager;
+import org.cofisweak.util.Utils;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -19,34 +20,25 @@ public class CurrencyServlet extends HttpServlet {
     private static final CurrencyService currencyService = CurrencyService.getInstance();
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String requestURI = req.getRequestURI();
-        String code = requestURI
-                .substring(requestURI.lastIndexOf("/") + 1)
-                .trim();
+        String code = Utils.extractCurrencyCodeFromUri(req.getRequestURI());
         try {
             validateGetRequest(code);
-        } catch (InvalidCurrencyCodeException e) {
-            resp.setStatus(400);
-            ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
-            return;
-        }
-
-        try {
             Optional<Currency> currency = currencyService.getCurrencyByCode(code);
-            if (currency.isPresent()) {
-                ResponseBuilder.writeResultToResponse(currency.get(), resp);
-            } else {
-                resp.setStatus(404);
-                ResponseBuilder.writeErrorToResponse("Currency code not founded", resp);
+            if (currency.isEmpty()) {
+                throw new CurrencyNotFoundException();
             }
+            ResponseBuilder.writeResultToResponse(currency.get(), resp);
+        } catch (InvalidCurrencyCodeException e) {
+            Utils.processException(e, 400, resp);
+        } catch (CurrencyNotFoundException e) {
+            Utils.processException(e, 404, resp);
         } catch (DaoException e) {
-            resp.setStatus(500);
-            ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
+            Utils.processException(e, 500, resp);
         }
     }
 
     private static void validateGetRequest(String code) throws InvalidCurrencyCodeException {
-        if (ValidatorManager.isValidCurrencyCode(code)) {
+        if (Utils.isInvalidCurrencyCode(code)) {
             throw new InvalidCurrencyCodeException();
         }
     }

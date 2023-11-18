@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.cofisweak.dto.ExceptionResponse;
+import org.cofisweak.dto.ExceptionResponseDto;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -15,7 +15,7 @@ public class ResponseBuilder {
     private static final GsonBuilder builder = new GsonBuilder();
     private static final Gson gson = builder.create();
     public static void writeErrorToResponse(String e, HttpServletResponse resp) throws IOException {
-        ExceptionResponse exceptionResponse = new ExceptionResponse(e);
+        ExceptionResponseDto exceptionResponse = new ExceptionResponseDto(e);
         writeResultToResponse(exceptionResponse, resp);
     }
 

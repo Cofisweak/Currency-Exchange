@@ -8,7 +8,7 @@ import org.cofisweak.exception.*;
 import org.cofisweak.model.Currency;
 import org.cofisweak.service.CurrencyService;
 import org.cofisweak.util.ResponseBuilder;
-import org.cofisweak.util.ValidatorManager;
+import org.cofisweak.util.Utils;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,8 +23,7 @@ public class CurrenciesServlet extends HttpServlet {
             List<Currency> currencies = currencyService.getAllCurrencies();
             ResponseBuilder.writeResultToResponse(currencies, resp);
         } catch (DaoException e) {
-            ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
-            resp.setStatus(500);
+            Utils.processException(e, 500, resp);
         }
     }
 
@@ -35,29 +34,28 @@ public class CurrenciesServlet extends HttpServlet {
         String sign = req.getParameter("sign");
         try {
             checkIsValidPostRequest(name, code, sign);
-        } catch (MissingFieldException | InvalidCurrencyCodeException e) {
-            resp.setStatus(400);
-            ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
-            return;
-        }
-
-        try {
-            Currency currency = currencyService.addNewCurrency(name, code, sign);
+            Currency currency = currencyService.addNewCurrency(name.trim(), code.trim(), sign.trim());
             ResponseBuilder.writeResultToResponse(currency, resp);
+        } catch (MissingFieldException | InvalidCurrencyCodeException e) {
+            Utils.processException(e, 400, resp);
         } catch (CurrencyAlreadyExistsException e) {
-            resp.setStatus(409);
-            ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
+            Utils.processException(e, 409, resp);
         } catch (DaoException e) {
-            resp.setStatus(500);
-            ResponseBuilder.writeErrorToResponse(e.getMessage(), resp);
+            Utils.processException(e, 500, resp);
         }
     }
 
     private void checkIsValidPostRequest(String name, String code, String sign) throws MissingFieldException, InvalidCurrencyCodeException {
-        ValidatorManager.checkIsFieldFilled(name, "Name");
-        ValidatorManager.checkIsFieldFilled(code, "Code");
-        ValidatorManager.checkIsFieldFilled(sign, "Sign");
-        if (!ValidatorManager.isValidCurrencyCode(code)) {
+        if (Utils.isFieldEmpty(name)) {
+            throw new MissingFieldException("Name");
+        }
+        if (Utils.isFieldEmpty(code)) {
+            throw new MissingFieldException("Code");
+        }
+        if (Utils.isFieldEmpty(sign)) {
+            throw new MissingFieldException("Sign");
+        }
+        if (Utils.isInvalidCurrencyCode(code)) {
             throw new InvalidCurrencyCodeException();
         }
     }

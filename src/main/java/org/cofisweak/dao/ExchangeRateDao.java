@@ -52,7 +52,7 @@ public class ExchangeRateDao {
              PreparedStatement statement = connection.prepareStatement(GET_ALL_EXCHANGE_RATES_SQL)) {
             ResultSet set = statement.executeQuery();
             while (set.next()) {
-                ExchangeRate rate = ExchangeRateMapper.mapFrom(set);
+                ExchangeRate rate = ExchangeRateMapper.mapFromResultSet(set);
                 result.add(rate);
             }
         } catch (SQLException e) {
@@ -71,7 +71,7 @@ public class ExchangeRateDao {
             ResultSet set = statement.executeQuery();
             ExchangeRate exchangeRate = null;
             if (set.next()) {
-                exchangeRate = ExchangeRateMapper.mapFrom(set);
+                exchangeRate = ExchangeRateMapper.mapFromResultSet(set);
             }
             return Optional.ofNullable(exchangeRate);
         } catch (SQLException e) {

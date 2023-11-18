@@ -1,8 +1,8 @@
 package org.cofisweak.dto;
 
+import org.cofisweak.model.Currency;
+
 import java.math.BigDecimal;
 
-public record ExchangeRequestDto(String baseCurrencyCode,
-                                 String targetCurrencyCode,
-                                 String amount) {
+public record ExchangeRequestDto(BigDecimal amount, Currency fromCurrency, Currency toCurrency) {
 }
