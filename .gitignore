@@ -37,6 +37,3 @@ build/
 ### Mac OS ###
 .DS_Store
 /.idea/
-/CurrencyExchange.db
-/src/main/resources/application.properties
-/src/main/resources/CurrencyExchange.db
