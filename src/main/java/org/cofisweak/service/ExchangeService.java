@@ -35,8 +35,7 @@ public class ExchangeService {
         exchangeRate.setBaseCurrencyId(dto.baseCurrency().getId());
         exchangeRate.setTargetCurrencyId(dto.targetCurrency().getId());
         exchangeRate.setRate(dto.rate());
-        exchangeRateDao.createNewExchangeRate(exchangeRate);
-        return exchangeRate;
+        return exchangeRateDao.addNewExchangeRate(exchangeRate);
     }
 
     public Optional<ExchangeRate> getExchangeRateByCurrencies(Currency first, Currency second) throws DaoException {

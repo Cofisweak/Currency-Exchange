@@ -11,6 +11,7 @@ import java.math.RoundingMode;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Utils {
+    public static final String GET_LAST_INSERT_ROWID_SQL = "SELECT last_insert_rowid()";
     public static String extractCurrencyCodeFromUri(String uri) {
         return uri
                 .substring(uri.lastIndexOf("/") + 1)

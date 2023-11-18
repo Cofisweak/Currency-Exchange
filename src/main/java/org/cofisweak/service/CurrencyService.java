@@ -40,7 +40,6 @@ public class CurrencyService {
         currency.setCode(code.toUpperCase());
         currency.setFullName(name);
         currency.setSign(sign);
-        currencyDao.addNewCurrency(currency);
-        return currency;
+        return currencyDao.addNewCurrency(currency);
     }
 }

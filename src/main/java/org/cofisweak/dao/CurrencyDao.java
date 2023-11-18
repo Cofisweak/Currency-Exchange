@@ -6,6 +6,7 @@ import org.cofisweak.exception.DaoException;
 import org.cofisweak.mapper.CurrencyMapper;
 import org.cofisweak.model.Currency;
 import org.cofisweak.util.ConnectionManager;
+import org.cofisweak.util.Utils;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -67,17 +68,40 @@ public class CurrencyDao {
         }
     }
 
-    public void addNewCurrency(Currency currency) throws DaoException {
-        try(Connection connection = ConnectionManager.getConnection();
-        PreparedStatement statement = connection.prepareStatement(ADD_NEW_CURRENCY_SQL)) {
-            statement.setString(1, currency.getCode());
-            statement.setString(2, currency.getFullName());
-            statement.setString(3, currency.getSign());
-            statement.execute();
-            //TODO: ID
+    public Currency addNewCurrency(Currency currency) throws DaoException {
+        try(Connection connection = ConnectionManager.getConnection()) {
+            connection.setAutoCommit(false);
+            return processAddNewCurrency(currency, connection);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
-            throw new DaoException("Unable to add currency");
+            throw new DaoException("Unable to add new currency");
+        }
+    }
+
+    private static Currency processAddNewCurrency(Currency currency, Connection connection) throws SQLException, DaoException {
+        try {
+            try (PreparedStatement statement = connection.prepareStatement(ADD_NEW_CURRENCY_SQL)) {
+                statement.setString(1, currency.getCode());
+                statement.setString(2, currency.getFullName());
+                statement.setString(3, currency.getSign());
+                statement.execute();
+            }
+            try (PreparedStatement statement = connection.prepareStatement(Utils.GET_LAST_INSERT_ROWID_SQL)) {
+                ResultSet resultSet = statement.executeQuery();
+                if (resultSet.next()) {
+                    currency.setId(resultSet.getInt("last_insert_rowid()"));
+                } else {
+                    throw new DaoException("Unable to check new currency");
+                }
+            }
+            connection.commit();
+            return currency;
+        } catch (SQLException e) {
+            connection.rollback();
+            System.out.println(e.getMessage());
+            throw new DaoException("Unable to add new currency");
+        } finally {
+            connection.setAutoCommit(true);
         }
     }
 

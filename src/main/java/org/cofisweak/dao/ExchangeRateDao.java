@@ -5,6 +5,7 @@ import org.cofisweak.exception.DaoException;
 import org.cofisweak.mapper.ExchangeRateMapper;
 import org.cofisweak.model.ExchangeRate;
 import org.cofisweak.util.ConnectionManager;
+import org.cofisweak.util.Utils;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -84,17 +85,40 @@ public class ExchangeRateDao {
         return INSTANCE;
     }
 
-    public void createNewExchangeRate(ExchangeRate rate) throws DaoException {
-        try (Connection connection = ConnectionManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(ADD_NEW_EXCHANGE_RATE_SQL)) {
-            statement.setInt(1, rate.getBaseCurrencyId());
-            statement.setInt(2, rate.getTargetCurrencyId());
-            statement.setBigDecimal(3, rate.getRate());
-            statement.execute();
-            //TODO: ID
+    public ExchangeRate addNewExchangeRate(ExchangeRate rate) throws DaoException {
+        try (Connection connection = ConnectionManager.getConnection()) {
+            connection.setAutoCommit(false);
+            return processAddNewExchangeRate(rate, connection);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
             throw new DaoException("Unable to add new exchange rate");
+        }
+    }
+
+    private static ExchangeRate processAddNewExchangeRate(ExchangeRate rate, Connection connection) throws DaoException, SQLException {
+        try {
+            try (PreparedStatement statement = connection.prepareStatement(ADD_NEW_EXCHANGE_RATE_SQL)) {
+                statement.setInt(1, rate.getBaseCurrencyId());
+                statement.setInt(2, rate.getTargetCurrencyId());
+                statement.setBigDecimal(3, rate.getRate());
+                statement.execute();
+            }
+            try (PreparedStatement statement = connection.prepareStatement(Utils.GET_LAST_INSERT_ROWID_SQL)) {
+                ResultSet resultSet = statement.executeQuery();
+                if (resultSet.next()) {
+                    rate.setId(resultSet.getInt("last_insert_rowid()"));
+                } else {
+                    throw new DaoException("Unable to check new exchange rate");
+                }
+            }
+            connection.commit();
+            return rate;
+        } catch (SQLException e) {
+            connection.rollback();
+            System.out.println(e.getMessage());
+            throw new DaoException("Unable to add new currency");
+        } finally {
+            connection.setAutoCommit(true);
         }
     }
 
