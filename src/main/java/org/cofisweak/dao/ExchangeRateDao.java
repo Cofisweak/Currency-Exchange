@@ -2,6 +2,7 @@ package org.cofisweak.dao;
 
 import lombok.NoArgsConstructor;
 import org.cofisweak.exception.DaoException;
+import org.cofisweak.exception.ExchangeRateAlreadyExistsException;
 import org.cofisweak.mapper.ExchangeRateMapper;
 import org.cofisweak.model.ExchangeRate;
 import org.cofisweak.util.ConnectionManager;
@@ -85,7 +86,7 @@ public class ExchangeRateDao {
         return INSTANCE;
     }
 
-    public ExchangeRate addNewExchangeRate(ExchangeRate rate) throws DaoException {
+    public ExchangeRate addNewExchangeRate(ExchangeRate rate) throws DaoException, ExchangeRateAlreadyExistsException {
         try (Connection connection = ConnectionManager.getConnection()) {
             connection.setAutoCommit(false);
             return processAddNewExchangeRate(rate, connection);
@@ -95,7 +96,7 @@ public class ExchangeRateDao {
         }
     }
 
-    private static ExchangeRate processAddNewExchangeRate(ExchangeRate rate, Connection connection) throws DaoException, SQLException {
+    private static ExchangeRate processAddNewExchangeRate(ExchangeRate rate, Connection connection) throws DaoException, SQLException, ExchangeRateAlreadyExistsException {
         try {
             try (PreparedStatement statement = connection.prepareStatement(ADD_NEW_EXCHANGE_RATE_SQL)) {
                 statement.setInt(1, rate.getBaseCurrencyId());
@@ -116,7 +117,11 @@ public class ExchangeRateDao {
         } catch (SQLException e) {
             connection.rollback();
             System.out.println(e.getMessage());
-            throw new DaoException("Unable to add new currency");
+            if (e.getMessage().contains("SQLITE_CONSTRAINT_UNIQUE")) {
+                throw new ExchangeRateAlreadyExistsException();
+            } else {
+                throw new DaoException("Unable to add new exchange rate");
+            }
         } finally {
             connection.setAutoCommit(true);
         }

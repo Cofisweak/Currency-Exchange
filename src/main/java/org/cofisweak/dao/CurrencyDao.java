@@ -2,6 +2,7 @@ package org.cofisweak.dao;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.cofisweak.exception.CurrencyAlreadyExistsException;
 import org.cofisweak.exception.DaoException;
 import org.cofisweak.mapper.CurrencyMapper;
 import org.cofisweak.model.Currency;
@@ -68,7 +69,7 @@ public class CurrencyDao {
         }
     }
 
-    public Currency addNewCurrency(Currency currency) throws DaoException {
+    public Currency addNewCurrency(Currency currency) throws DaoException, CurrencyAlreadyExistsException {
         try(Connection connection = ConnectionManager.getConnection()) {
             connection.setAutoCommit(false);
             return processAddNewCurrency(currency, connection);
@@ -78,7 +79,7 @@ public class CurrencyDao {
         }
     }
 
-    private static Currency processAddNewCurrency(Currency currency, Connection connection) throws SQLException, DaoException {
+    private static Currency processAddNewCurrency(Currency currency, Connection connection) throws SQLException, DaoException, CurrencyAlreadyExistsException {
         try {
             try (PreparedStatement statement = connection.prepareStatement(ADD_NEW_CURRENCY_SQL)) {
                 statement.setString(1, currency.getCode());
@@ -99,7 +100,11 @@ public class CurrencyDao {
         } catch (SQLException e) {
             connection.rollback();
             System.out.println(e.getMessage());
-            throw new DaoException("Unable to add new currency");
+            if (e.getMessage().contains("SQLITE_CONSTRAINT_UNIQUE")) {
+                throw new CurrencyAlreadyExistsException();
+            } else {
+                throw new DaoException("Unable to add new currency");
+            }
         } finally {
             connection.setAutoCommit(true);
         }

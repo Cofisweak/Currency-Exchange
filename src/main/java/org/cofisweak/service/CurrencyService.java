@@ -31,11 +31,6 @@ public class CurrencyService {
     }
 
     public Currency addNewCurrency(String name, String code, String sign) throws DaoException, CurrencyAlreadyExistsException {
-        Optional<Currency> existingCurrency = currencyDao.getCurrencyByCode(code);
-        if (existingCurrency.isPresent()) {
-            throw new CurrencyAlreadyExistsException();
-        }
-
         Currency currency = new Currency();
         currency.setCode(code.toUpperCase());
         currency.setFullName(name);

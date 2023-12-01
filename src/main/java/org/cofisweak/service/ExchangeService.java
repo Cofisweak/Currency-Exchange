@@ -28,9 +28,6 @@ public class ExchangeService {
     }
 
     public ExchangeRate addNewExchangeRate(AddExchangeRateRequestDto dto) throws DaoException, ExchangeRateAlreadyExistsException {
-        if (getExchangeRateByCurrencies(dto.baseCurrency(), dto.targetCurrency()).isPresent()) {
-            throw new ExchangeRateAlreadyExistsException();
-        }
         ExchangeRate exchangeRate = new ExchangeRate();
         exchangeRate.setBaseCurrencyId(dto.baseCurrency().getId());
         exchangeRate.setTargetCurrencyId(dto.targetCurrency().getId());
@@ -69,16 +66,22 @@ public class ExchangeService {
     }
 
     private BigDecimal getRate(Currency baseCurrency, Currency targetCurrency) throws DaoException, ExchangeRateNotFoundException {
-        try {
-            return getDirectRate(baseCurrency, targetCurrency);
-        } catch (ExchangeRateNotFoundException ignored) {}
-        try {
-            return getReverseRate(baseCurrency, targetCurrency);
-        } catch (ExchangeRateNotFoundException ignored) {}
-        return getRateByCrossExchange(baseCurrency, targetCurrency);
+        Optional<BigDecimal> rate = getDirectRate(baseCurrency, targetCurrency);
+        if (rate.isPresent()) {
+            return rate.get();
+        }
+        rate = getReverseRate(baseCurrency, targetCurrency);
+        if (rate.isPresent()) {
+            return rate.get();
+        }
+        rate = getRateByCrossExchange(baseCurrency, targetCurrency);
+        if (rate.isPresent()) {
+            return rate.get();
+        }
+        throw new ExchangeRateNotFoundException();
     }
 
-    private BigDecimal getRateByCrossExchange(Currency baseCurrency, Currency targetCurrency) throws DaoException, ExchangeRateNotFoundException {
+    private Optional<BigDecimal> getRateByCrossExchange(Currency baseCurrency, Currency targetCurrency) throws DaoException {
         List<ExchangeRate> exchangeRates = exchangeRateDao.getAllExchangeRatesWithReversedRate();
 
         List<ExchangeRate> suitableBaseCurrencies = exchangeRates.stream()
@@ -91,26 +94,26 @@ public class ExchangeService {
         for (ExchangeRate suitableBaseCurrency : suitableBaseCurrencies) {
             for (ExchangeRate suitableTargetCurrency : suitableTargetCurrencies) {
                 if (suitableBaseCurrency.getTargetCurrencyId() == suitableTargetCurrency.getBaseCurrencyId()) {
-                    return suitableBaseCurrency.getRate().multiply(suitableTargetCurrency.getRate());
+                    return Optional.of(suitableBaseCurrency
+                            .getRate()
+                            .multiply(suitableTargetCurrency.getRate()));
                 }
             }
         }
 
-        throw new ExchangeRateNotFoundException();
+        return Optional.empty();
     }
 
-    private BigDecimal getDirectRate(Currency baseCurrency, Currency targetCurrency) throws DaoException, ExchangeRateNotFoundException {
-        Optional<ExchangeRate> exchangeRate = getExchangeRateByCurrencies(baseCurrency, targetCurrency);
-        if (exchangeRate.isEmpty()) {
-            throw new ExchangeRateNotFoundException();
-        }
-        return exchangeRate.get().getRate();
+    private Optional<BigDecimal> getDirectRate(Currency baseCurrency, Currency targetCurrency) throws DaoException {
+        return getExchangeRateByCurrencies(baseCurrency, targetCurrency)
+                .map(ExchangeRate::getRate);
 
     }
 
-    private BigDecimal getReverseRate(Currency baseCurrency, Currency targetCurrency) throws DaoException, ExchangeRateNotFoundException {
-        return BigDecimal.ONE
-                .setScale(6, RoundingMode.DOWN)
-                .divide(getDirectRate(targetCurrency, baseCurrency), RoundingMode.DOWN);
+    private Optional<BigDecimal> getReverseRate(Currency baseCurrency, Currency targetCurrency) throws DaoException {
+        return getDirectRate(targetCurrency, baseCurrency)
+                .map(rate -> BigDecimal.ONE
+                        .setScale(6, RoundingMode.DOWN)
+                        .divide(rate, RoundingMode.DOWN));
     }
 }
