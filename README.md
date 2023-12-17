@@ -7,7 +7,7 @@ REST API for describing currencies and exchange rates. Allows you to view and ed
 ### Used technologies
 
 1. Database: SQLite, JDBC
-2. Web-server: Tomcat
+2. Web-server: Tomcat 10
 
 ### Database
 
